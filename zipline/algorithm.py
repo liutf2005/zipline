@@ -48,6 +48,7 @@ from zipline.finance.controls import (
     MaxOrderCount,
     MaxOrderSize,
     MaxPositionSize,
+    MaxLeverage,
     RestrictedListOrder
 )
 from zipline.finance.execution import (
@@ -697,6 +698,7 @@ class TradingAlgorithm(object):
             control.validate(sid,
                              amount,
                              self.updated_portfolio(),
+                             self.updated_account(),
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -1072,6 +1074,14 @@ class TradingAlgorithm(object):
         control = MaxOrderSize(sid=sid,
                                max_shares=max_shares,
                                max_notional=max_notional)
+        self.register_trading_control(control)
+
+    @api_method
+    def set_max_leverage(self, max_leverage=None):
+        """
+        Set a limit on the maximum leverage of the algorithm.
+        """
+        control = MaxLeverage(max_leverage)
         self.register_trading_control(control)
 
     @api_method

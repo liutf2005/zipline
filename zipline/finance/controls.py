@@ -36,9 +36,10 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
     def validate(self,
                  sid,
                  amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+                 _portfolio,
+                 _account,
+                 _algo_datetime,
+                 _algo_current_data):
         """
         Before any order is executed by TradingAlgorithm, this method should be
         called *exactly once* on each registered TradingControl object.
@@ -82,7 +83,8 @@ class MaxOrderCount(TradingControl):
                  sid,
                  amount,
                  _portfolio,
-                 algo_datetime,
+                 _account,
+                 _algo_datetime,
                  _algo_current_data):
         """
         Fail if we've already placed self.max_count orders today.
@@ -119,6 +121,7 @@ class RestrictedListOrder(TradingControl):
                  sid,
                  amount,
                  _portfolio,
+                 _account,
                  _algo_datetime,
                  _algo_current_data):
         """
@@ -127,6 +130,32 @@ class RestrictedListOrder(TradingControl):
         if sid in self.restricted_list:
             self.fail(sid, amount)
 
+class MaxLeverage(TradingControl):
+    """
+    TradingControl representing a limit on the maximum leverage allowed
+    by the algorithm.
+    """
+
+    def __init__(self, max_leverage):
+        """
+        max_leverage is the gross leverage in decimal form. For example,
+        2, limits an algorithm to trading at most double the account value.
+        """
+        self.max_leverage = max_leverage
+
+    def validate(self,
+                 sid,
+                 amount,
+                 _portfolio,
+                 _account,
+                 _algo_datetime,
+                 _algo_current_data):
+        """
+        Fail if the leverage is greater than the allowed leverage.
+        """
+        from celery.contrib import rdb; rdb.set_trace()
+        if account.positions[sid].amount + amount > self.max_leverage:
+            self.fail(sid, amount)
 
 class MaxOrderSize(TradingControl):
     """
@@ -161,9 +190,10 @@ class MaxOrderSize(TradingControl):
     def validate(self,
                  sid,
                  amount,
-                 portfolio,
+                 _portfolio,
+                 _account,
                  _algo_datetime,
-                 algo_current_data):
+                 _algo_current_data):
         """
         Fail if the magnitude of the given order exceeds either self.max_shares
         or self.max_notional.
@@ -217,9 +247,10 @@ class MaxPositionSize(TradingControl):
     def validate(self,
                  sid,
                  amount,
-                 portfolio,
-                 algo_datetime,
-                 algo_current_data):
+                 _portfolio,
+                 _account,
+                 _algo_datetime,
+                 _algo_current_data):
         """
         Fail if the given order would cause the magnitude of our position to be
         greater in shares than self.max_shares or greater in dollar value than
@@ -255,7 +286,8 @@ class LongOnly(TradingControl):
     def validate(self,
                  sid,
                  amount,
-                 portfolio,
+                 _portfolio,
+                 _account,
                  _algo_datetime,
                  _algo_current_data):
         """
